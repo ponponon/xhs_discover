@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试小红书HTML文件</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .file-section {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        button {
+            background-color: #ff2442;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #e01e3a;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .results pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 12px;
+            margin: 0;
+        }
+        .stats {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .success {
+            color: #388e3c;
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>小红书HTML文件测试工具</h1>
+    
+    <div class="container">
+        <div class="file-section">
+            <h2>xiaohongshu_home.html</h2>
+            <button onclick="testFile1()">测试提取</button>
+            <div id="results1"></div>
+        </div>
+        
+        <div class="file-section">
+            <h2>xiaohongshu_home2.html</h2>
+            <button onclick="testFile2()">测试提取</button>
+            <div id="results2"></div>
+        </div>
+    </div>
+
+    <script>
+        function extractPostsFromHTML(htmlContent) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const noteItems = doc.querySelectorAll('.note-item');
+            const posts = [];
+
+            noteItems.forEach((item, index) => {
+                try {
+                    const coverImg = item.querySelector('.cover img');
+                    const titleElement = item.querySelector('.footer .title span');
+                    const authorElement = item.querySelector('.author-wrapper .author .name');
+                    const likeCountElement = item.querySelector('.author-wrapper .like-wrapper .count');
+                    const linkElement = item.querySelector('.cover');
+
+                    let authorAvatar = '';
+                    
+                    const authorAvatarElement = item.querySelector('.author-wrapper .author .author-avatar img');
+                    if (authorAvatarElement) {
+                        authorAvatar = authorAvatarElement.src;
+                    } else {
+                        const authorAvatarDiv = item.querySelector('.author-wrapper .author .author-avatar');
+                        if (authorAvatarDiv) {
+                            const bgImage = window.getComputedStyle(authorAvatarDiv).backgroundImage;
+                            if (bgImage && bgImage !== 'none') {
+                                authorAvatar = bgImage.replace(/url\(['"]?([^'"]+)['"]?\)/, '$1');
+                            }
+                        }
+                    }
+
+                    const post = {
+                        index: index,
+                        coverImage: coverImg ? coverImg.src : '',
+                        title: titleElement ? titleElement.textContent.trim() : '',
+                        author: authorElement ? authorElement.textContent.trim() : '',
+                        authorAvatar: authorAvatar,
+                        likeCount: likeCountElement ? likeCountElement.textContent.trim() : '0',
+                        postLink: linkElement ? linkElement.href : '',
+                        postId: linkElement ? (linkElement.href.match(/\/explore\/([a-f0-9]+)/)?.[1] || '') : ''
+                    };
+
+                    posts.push(post);
+                } catch (error) {
+                    console.error(`提取帖子 ${index} 时出错:`, error);
+                }
+            });
+
+            return posts;
+        }
+
+        async function testFile1() {
+            const resultsDiv = document.getElementById('results1');
+            resultsDiv.innerHTML = '<p>正在加载文件...</p>';
+
+            try {
+                const response = await fetch('xiaohongshu_home.html');
+                const htmlContent = await response.text();
+                
+                const posts = extractPostsFromHTML(htmlContent);
+                
+                const stats = {
+                    totalPosts: posts.length,
+                    withTitle: posts.filter(p => p.title).length,
+                    withAuthor: posts.filter(p => p.author).length,
+                    withCover: posts.filter(p => p.coverImage).length,
+                    withAvatar: posts.filter(p => p.authorAvatar).length
+                };
+
+                resultsDiv.innerHTML = `
+                    <div class="success">成功提取 ${posts.length} 个帖子</div>
+                    <div class="stats">
+                        <strong>统计信息：</strong><br>
+                        总帖子数: ${stats.totalPosts}<br>
+                        有标题: ${stats.withTitle}<br>
+                        有作者: ${stats.withAuthor}<br>
+                        有封面图: ${stats.withCover}<br>
+                        有头像: ${stats.withAvatar}
+                    </div>
+                    <div class="results">
+                        <pre>${JSON.stringify(posts, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">错误: ${error.message}</div>`;
+            }
+        }
+
+        async function testFile2() {
+            const resultsDiv = document.getElementById('results2');
+            resultsDiv.innerHTML = '<p>正在加载文件...</p>';
+
+            try {
+                const response = await fetch('xiaohongshu_home2.html');
+                const htmlContent = await response.text();
+                
+                const posts = extractPostsFromHTML(htmlContent);
+                
+                const stats = {
+                    totalPosts: posts.length,
+                    withTitle: posts.filter(p => p.title).length,
+                    withAuthor: posts.filter(p => p.author).length,
+                    withCover: posts.filter(p => p.coverImage).length,
+                    withAvatar: posts.filter(p => p.authorAvatar).length
+                };
+
+                resultsDiv.innerHTML = `
+                    <div class="success">成功提取 ${posts.length} 个帖子</div>
+                    <div class="stats">
+                        <strong>统计信息：</strong><br>
+                        总帖子数: ${stats.totalPosts}<br>
+                        有标题: ${stats.withTitle}<br>
+                        有作者: ${stats.withAuthor}<br>
+                        有封面图: ${stats.withCover}<br>
+                        有头像: ${stats.withAvatar}
+                    </div>
+                    <div class="results">
+                        <pre>${JSON.stringify(posts, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">错误: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
