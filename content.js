@@ -4,54 +4,56 @@ class XiaohongshuScraper {
   }
 
   extractPosts() {
-    console.log('[XHS Scraper] 开始提取帖子...');
     const noteItems = document.querySelectorAll('.note-item');
-    console.log(`[XHS Scraper] 找到 ${noteItems.length} 个帖子元素`);
     
     noteItems.forEach((item, index) => {
       try {
         const post = this.extractPostData(item, index);
         if (post) {
           this.posts.push(post);
-          console.log(`[XHS Scraper] 提取帖子 ${index + 1}:`, post.title);
         }
       } catch (error) {
         console.error(`[XHS Scraper] 提取帖子 ${index} 时出错:`, error);
       }
     });
 
-    console.log(`[XHS Scraper] 总共提取了 ${this.posts.length} 个帖子`);
     return this.posts;
   }
 
   extractPostData(item, index) {
-    console.log(`[XHS Scraper] 正在提取第 ${index + 1} 个帖子的数据...`);
-    
     const coverImg = item.querySelector('.cover img');
     const titleElement = item.querySelector('.footer .title span');
     const authorElement = item.querySelector('.author-wrapper .author .name');
-    const authorAvatarElement = item.querySelector('.author-wrapper .author .author-avatar img');
     const likeCountElement = item.querySelector('.author-wrapper .like-wrapper .count');
     const linkElement = item.querySelector('.cover');
 
-    console.log(`[XHS Scraper] 封面图: ${coverImg ? '找到' : '未找到'}`);
-    console.log(`[XHS Scraper] 标题: ${titleElement ? titleElement.textContent.trim() : '未找到'}`);
-    console.log(`[XHS Scraper] 作者: ${authorElement ? authorElement.textContent.trim() : '未找到'}`);
+    let authorAvatar = '';
+    
+    const authorAvatarElement = item.querySelector('.author-wrapper .author .author-avatar img');
+    if (authorAvatarElement) {
+      authorAvatar = authorAvatarElement.src;
+    } else {
+      const authorAvatarDiv = item.querySelector('.author-wrapper .author .author-avatar');
+      if (authorAvatarDiv) {
+        const bgImage = window.getComputedStyle(authorAvatarDiv).backgroundImage;
+        if (bgImage && bgImage !== 'none') {
+          authorAvatar = bgImage.replace(/url\(['"]?([^'"]+)['"]?\)/, '$1');
+        }
+      }
+    }
 
     const coverImage = coverImg ? coverImg.src : '';
     const title = titleElement ? titleElement.textContent.trim() : '';
     const author = authorElement ? authorElement.textContent.trim() : '';
-    const authorAvatar = authorAvatarElement ? authorAvatarElement.src : '';
     const likeCount = likeCountElement ? likeCountElement.textContent.trim() : '0';
     const postLink = linkElement ? linkElement.href : '';
     const postId = postLink.match(/\/explore\/([a-f0-9]+)/)?.[1] || '';
 
     if (!coverImage && !title) {
-      console.log(`[XHS Scraper] 帖子 ${index + 1} 没有封面图和标题，跳过`);
       return null;
     }
 
-    const postData = {
+    return {
       index: index + 1,
       postId: postId,
       coverImage: coverImage,
@@ -62,9 +64,6 @@ class XiaohongshuScraper {
       postLink: postLink,
       publishTime: this.extractPublishTime(item)
     };
-    
-    console.log(`[XHS Scraper] 帖子 ${index + 1} 数据提取完成:`, postData);
-    return postData;
   }
 
   extractPublishTime(item) {

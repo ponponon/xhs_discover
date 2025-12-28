@@ -43,31 +43,24 @@ document.addEventListener('DOMContentLoaded', () => {
   sortSelect.addEventListener('change', applyFilters);
 
   async function extractPosts() {
-    console.log('[XHS Popup] 开始提取帖子...');
     showLoading();
     
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      console.log('[XHS Popup] 当前标签页:', tab.url);
       
       if (!tab.url.includes('xiaohongshu.com/explore')) {
-        console.error('[XHS Popup] 错误：不是小红书探索页面');
         showError('请先访问小红书探索页面: https://www.xiaohongshu.com/explore');
         return;
       }
 
-      console.log('[XHS Popup] 发送提取消息到content script...');
       const response = await chrome.tabs.sendMessage(tab.id, { action: 'EXTRACT_POSTS' });
-      console.log('[XHS Popup] 收到响应:', response);
       
       if (response && response.success) {
         currentPosts = response.posts;
         filteredPosts = [...currentPosts];
-        console.log(`[XHS Popup] 成功提取 ${currentPosts.length} 个帖子`);
         updateStats();
         renderPosts(filteredPosts);
       } else {
-        console.error('[XHS Popup] 提取失败:', response);
         showError('提取失败，请确保页面已完全加载');
       }
     } catch (error) {

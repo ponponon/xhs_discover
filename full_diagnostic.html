@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>插件完整诊断工具</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #ff2442;
+      margin-bottom: 30px;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: white;
+    }
+    .section h2 {
+      margin-top: 0;
+      color: #333;
+      border-bottom: 2px solid #ff2442;
+      padding-bottom: 10px;
+    }
+    .result {
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    pre {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    button {
+      background: #ff2442;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background: #e01f3a;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 36, 66, 0.3);
+    }
+    .step {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-left: 4px solid #ff2442;
+      border-radius: 4px;
+    }
+    .step-number {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      background: #ff2442;
+      color: white;
+      text-align: center;
+      line-height: 30px;
+      border-radius: 50%;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    .checklist li {
+      padding: 10px;
+      margin: 5px 0;
+      background: #f8f9fa;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+    }
+    .checklist li::before {
+      content: '☐';
+      margin-right: 10px;
+      font-size: 18px;
+    }
+    .checklist li.checked::before {
+      content: '☑';
+      color: #28a745;
+    }
+    .console-output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #333;
+    }
+    .console-line {
+      padding: 2px 0;
+      border-bottom: 1px solid #2d2d2d;
+    }
+    .console-line.error {
+      color: #f48771;
+    }
+    .console-line.success {
+      color: #89d185;
+    }
+    .console-line.warning {
+      color: #dcdcaa;
+    }
+    .console-line.info {
+      color: #4fc1ff;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 小红书插件完整诊断工具</h1>
+
+  <div class="section">
+    <h2>📋 诊断步骤</h2>
+    <p>请按照以下步骤逐步排查问题：</p>
+
+    <div class="step">
+      <span class="step-number">1</span>
+      <strong>检查插件是否安装</strong>
+      <ul>
+        <li>打开 <code>chrome://extensions/</code></li>
+        <li>找到"小红书帖子提取器"</li>
+        <li>确认插件已启用（开关是打开的）</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <span class="step-number">2</span>
+      <strong>检查插件权限</strong>
+      <ul>
+        <li>在插件详情页，点击"权限"或"查看权限"</li>
+        <li>确认有以下权限：
+          <ul>
+            <li>activeTab</li>
+            <li>scripting</li>
+            <li>downloads</li>
+          </ul>
+        </li>
+        <li>确认有访问 <code>https://www.xiaohongshu.com/*</code> 的权限</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <span class="step-number">3</span>
+      <strong>重新加载插件</strong>
+      <ul>
+        <li>在插件详情页，点击刷新按钮 🔄</li>
+        <li>等待插件重新加载完成</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <span class="step-number">4</span>
+      <strong>检查插件错误</strong>
+      <ul>
+        <li>在插件详情页，点击"错误"按钮（如果有）</li>
+        <li>查看是否有错误信息</li>
+        <li>如果有错误，请复制错误信息</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <span class="step-number">5</span>
+      <strong>测试Content Script</strong>
+      <ul>
+        <li>访问 <code>https://www.xiaohongshu.com/explore</code></li>
+        <li>按 F12 打开开发者工具</li>
+        <li>切换到 Console 标签</li>
+        <li>运行下面的测试代码</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🧪 Content Script 测试代码</h2>
+    <p>将以下代码复制到小红书页面的 Console 中运行：</p>
+    <pre id="testCode">
+// 测试1: 检查页面URL
+console.log('=== 测试1: 检查页面URL ===');
+console.log('当前URL:', window.location.href);
+console.log('是否为探索页:', window.location.href.includes('xiaohongshu.com/explore'));
+
+// 测试2: 检查帖子容器
+console.log('\n=== 测试2: 检查帖子容器 ===');
+const feedsContainer = document.getElementById('exploreFeeds');
+console.log('exploreFeids容器:', feedsContainer ? '存在' : '不存在');
+
+// 测试3: 检查帖子元素
+console.log('\n=== 测试3: 检查帖子元素 ===');
+const noteItems = document.querySelectorAll('.note-item');
+console.log('帖子数量:', noteItems.length);
+
+// 测试4: 测试选择器
+console.log('\n=== 测试4: 测试选择器 ===');
+if (noteItems.length > 0) {
+  const firstPost = noteItems[0];
+  console.log('封面图:', firstPost.querySelector('.cover img') ? '找到' : '未找到');
+  console.log('标题:', firstPost.querySelector('.footer .title span') ? '找到' : '未找到');
+  console.log('作者:', firstPost.querySelector('.author-wrapper .author .name') ? '找到' : '未找到');
+  console.log('点赞数:', firstPost.querySelector('.author-wrapper .like-wrapper .count') ? '找到' : '未找到');
+  console.log('链接:', firstPost.querySelector('.cover') ? '找到' : '未找到');
+}
+
+// 测试5: 测试消息监听
+console.log('\n=== 测试5: 测试消息监听 ===');
+console.log('chrome对象:', typeof chrome);
+console.log('chrome.runtime:', typeof chrome.runtime);
+console.log('chrome.runtime.onMessage:', typeof chrome.runtime.onMessage);
+
+// 测试6: 手动提取数据
+console.log('\n=== 测试6: 手动提取数据 ===');
+const posts = [];
+noteItems.forEach((item, index) => {
+  const coverImg = item.querySelector('.cover img');
+  const titleElement = item.querySelector('.footer .title span');
+  const authorElement = item.querySelector('.author-wrapper .author .name');
+  const likeCountElement = item.querySelector('.author-wrapper .like-wrapper .count');
+  const linkElement = item.querySelector('.cover');
+
+  const post = {
+    index: index + 1,
+    coverImage: coverImg ? coverImg.src : '',
+    title: titleElement ? titleElement.textContent.trim() : '',
+    author: authorElement ? authorElement.textContent.trim() : '',
+    likeCount: likeCountElement ? likeCountElement.textContent.trim() : '0',
+    postLink: linkElement ? linkElement.href : ''
+  };
+
+  if (post.coverImage || post.title) {
+    posts.push(post);
+  }
+});
+console.log('成功提取帖子数:', posts.length);
+console.log('前3个帖子:', posts.slice(0, 3));
+
+console.log('\n=== 测试完成 ===');
+    </pre>
+    <button onclick="copyTestCode()">复制测试代码</button>
+  </div>
+
+  <div class="section">
+    <h2>🔧 Popup 测试代码</h2>
+    <p>在插件弹窗的开发者工具中运行（右键点击插件图标 → 检查弹出窗口）：</p>
+    <pre id="popupTestCode">
+// 测试1: 检查当前标签页
+console.log('=== Popup 测试 ===');
+chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  console.log('当前标签页:', tabs[0].url);
+  console.log('是否为探索页:', tabs[0].url.includes('xiaohongshu.com/explore'));
+  
+  // 测试2: 发送消息到content script
+  console.log('\n发送消息到content script...');
+  chrome.tabs.sendMessage(tabs[0].id, { action: 'EXTRACT_POSTS' }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('发送消息失败:', chrome.runtime.lastError);
+    } else {
+      console.log('收到响应:', response);
+      if (response && response.success) {
+        console.log('提取的帖子数:', response.posts.length);
+        console.log('第一个帖子:', response.posts[0]);
+      }
+    }
+  });
+});
+    </pre>
+    <button onclick="copyPopupTestCode()">复制Popup测试代码</button>
+  </div>
+
+  <div class="section">
+    <h2>📊 常见问题排查</h2>
+
+    <h3>问题1: 点击"提取帖子"没有反应</h3>
+    <div class="warning">
+      <strong>可能原因：</strong>
+      <ul>
+        <li>Content script未注入</li>
+        <li>页面URL不匹配</li>
+        <li>消息传递失败</li>
+      </ul>
+      <strong>解决方法：</strong>
+      <ul>
+        <li>运行上面的测试代码检查</li>
+        <li>检查Console是否有错误</li>
+        <li>确认页面URL是 https://www.xiaohongshu.com/explore</li>
+      </ul>
+    </div>
+
+    <h3>问题2: 显示"提取失败，请确保页面已完全加载"</h3>
+    <div class="warning">
+      <strong>可能原因：</strong>
+      <ul>
+        <li>页面还在加载中</li>
+        <li>找不到帖子元素</li>
+        <li>Content script返回错误</li>
+      </ul>
+      <strong>解决方法：</strong>
+      <ul>
+        <li>等待页面完全加载</li>
+        <li>向下滚动页面让更多帖子加载</li>
+        <li>运行测试代码检查是否能找到帖子</li>
+      </ul>
+    </div>
+
+    <h3>问题3: 提取的帖子数为0</h3>
+    <div class="warning">
+      <strong>可能原因：</strong>
+      <ul>
+        <li>DOM结构已改变</li>
+        <li>选择器不匹配</li>
+        <li>页面使用了虚拟滚动</li>
+      </ul>
+      <strong>解决方法：</strong>
+      <ul>
+        <li>运行测试代码检查选择器</li>
+        <li>查看第一个帖子的HTML结构</li>
+        <li>更新content.js中的选择器</li>
+      </ul>
+    </div>
+
+    <h3>问题4: Content script未加载</h3>
+    <div class="error">
+      <strong>检查方法：</strong>
+      <ol>
+        <li>打开 chrome://extensions/</li>
+        <li>找到插件，点击"检查视图"</li>
+        <li>查看Console是否有错误</li>
+        <li>查看Network标签，确认content.js是否加载</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>✅ 检查清单</h2>
+    <ul class="checklist">
+      <li>插件已安装并启用</li>
+      <li>插件权限正确配置</li>
+      <li>已重新加载插件</li>
+      <li>没有插件错误</li>
+      <li>访问的是正确的URL</li>
+      <li>页面已完全加载</li>
+      <li>能看到帖子内容</li>
+      <li>测试代码能找到帖子元素</li>
+      <li>消息监听器正常工作</li>
+      <li>能手动提取数据</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>📝 如何反馈问题</h2>
+    <p>如果以上步骤都无法解决问题，请提供以下信息：</p>
+    <ul>
+      <li>Chrome版本号</li>
+      <li>插件版本号</li>
+      <li>Console中的错误信息</li>
+      <li>测试代码的输出结果</li>
+      <li>插件详情页的错误信息</li>
+      <li>第一个帖子的HTML结构</li>
+    </ul>
+  </div>
+
+  <script>
+    function copyTestCode() {
+      const code = document.getElementById('testCode').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('测试代码已复制到剪贴板！');
+      }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动复制');
+      });
+    }
+
+    function copyPopupTestCode() {
+      const code = document.getElementById('popupTestCode').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('Popup测试代码已复制到剪贴板！');
+      }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动复制');
+      });
+    }
+  </script>
+</body>
+</html>
