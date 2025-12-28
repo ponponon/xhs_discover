@@ -5,7 +5,8 @@
   "description": "提取小红书探索页面的帖子信息",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "downloads"
   ],
   "host_permissions": [
     "https://www.xiaohongshu.com/*"

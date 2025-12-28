@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小红书页面结构诊断</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #ff2442;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+    .section h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .result {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    button {
+      background: #ff2442;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #e01f3a;
+    }
+    .post-sample {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      background: white;
+    }
+    .post-sample img {
+      max-width: 100px;
+      max-height: 100px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 小红书页面结构诊断工具</h1>
+  
+  <div class="section">
+    <h2>诊断说明</h2>
+    <p>此工具用于诊断小红书探索页面的DOM结构，帮助排查插件无法提取帖子的问题。</p>
+    <p><strong>使用方法：</strong></p>
+    <ol>
+      <li>访问小红书探索页面：<a href="https://www.xiaohongshu.com/explore" target="_blank">https://www.xiaohongshu.com/explore</a></li>
+      <li>等待页面完全加载</li>
+      <li>打开浏览器开发者工具（F12）</li>
+      <li>切换到 Console 标签</li>
+      <li>复制下面的代码并粘贴到 Console 中执行</li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h2>诊断代码</h2>
+    <pre id="diagnosticCode">
+(function() {
+  console.log('='.repeat(60));
+  console.log('🔍 开始诊断小红书页面结构');
+  console.log('='.repeat(60));
+  
+  const results = {
+    url: window.location.href,
+    timestamp: new Date().toISOString()
+  };
+
+  // 检查页面URL
+  console.log('\n📍 页面URL:', window.location.href);
+  if (!window.location.href.includes('xiaohongshu.com/explore')) {
+    console.error('❌ 错误：当前不是小红书探索页面');
+    return;
+  }
+  console.log('✅ 页面URL正确');
+
+  // 检查帖子容器
+  console.log('\n📦 检查帖子容器...');
+  const feedsContainer = document.getElementById('exploreFeeds');
+  if (feedsContainer) {
+    console.log('✅ 找到 exploreFeeds 容器');
+    results.feedsContainer = true;
+  } else {
+    console.error('❌ 未找到 exploreFeeds 容器');
+    results.feedsContainer = false;
+  }
+
+  // 检查帖子元素
+  console.log('\n📝 检查帖子元素...');
+  const noteItems = document.querySelectorAll('.note-item');
+  console.log(`找到 ${noteItems.length} 个 .note-item 元素`);
+  results.noteItemCount = noteItems.length;
+
+  if (noteItems.length === 0) {
+    console.error('❌ 未找到任何帖子元素');
+    
+    // 尝试查找其他可能的容器
+    console.log('\n🔎 尝试查找其他可能的容器...');
+    const allDivs = document.querySelectorAll('div[class*="note"], div[class*="feed"], div[class*="post"]');
+    console.log(`找到 ${allDivs.length} 个可能相关的元素`);
+    
+    allDivs.slice(0, 5).forEach((el, i) => {
+      console.log(`元素 ${i + 1}:`, el.className);
+    });
+    
+    return;
+  }
+
+  console.log('✅ 找到帖子元素');
+
+  // 检查第一个帖子的结构
+  console.log('\n🔬 检查第一个帖子的DOM结构...');
+  const firstPost = noteItems[0];
+  const postStructure = {};
+
+  // 检查封面图
+  const coverImg = firstPost.querySelector('.cover img');
+  if (coverImg) {
+    console.log('✅ 找到封面图:', coverImg.src);
+    postStructure.coverImage = true;
+  } else {
+    console.error('❌ 未找到封面图 (.cover img)');
+    postStructure.coverImage = false;
+  }
+
+  // 检查标题
+  const titleElement = firstPost.querySelector('.footer .title span');
+  if (titleElement) {
+    console.log('✅ 找到标题:', titleElement.textContent.trim());
+    postStructure.title = true;
+  } else {
+    console.error('❌ 未找到标题 (.footer .title span)');
+    postStructure.title = false;
+  }
+
+  // 检查作者
+  const authorElement = firstPost.querySelector('.author-wrapper .author .name');
+  if (authorElement) {
+    console.log('✅ 找到作者:', authorElement.textContent.trim());
+    postStructure.author = true;
+  } else {
+    console.error('❌ 未找到作者 (.author-wrapper .author .name)');
+    postStructure.author = false;
+  }
+
+  // 检查作者头像
+  const authorAvatarElement = firstPost.querySelector('.author-wrapper .author .author-avatar img');
+  if (authorAvatarElement) {
+    console.log('✅ 找到作者头像:', authorAvatarElement.src);
+    postStructure.authorAvatar = true;
+  } else {
+    console.error('❌ 未找到作者头像 (.author-wrapper .author .author-avatar img)');
+    postStructure.authorAvatar = false;
+  }
+
+  // 检查点赞数
+  const likeCountElement = firstPost.querySelector('.author-wrapper .like-wrapper .count');
+  if (likeCountElement) {
+    console.log('✅ 找到点赞数:', likeCountElement.textContent.trim());
+    postStructure.likeCount = true;
+  } else {
+    console.error('❌ 未找到点赞数 (.author-wrapper .like-wrapper .count)');
+    postStructure.likeCount = false;
+  }
+
+  // 检查链接
+  const linkElement = firstPost.querySelector('.cover');
+  if (linkElement && linkElement.href) {
+    console.log('✅ 找到帖子链接:', linkElement.href);
+    postStructure.postLink = true;
+  } else {
+    console.error('❌ 未找到帖子链接 (.cover)');
+    postStructure.postLink = false;
+  }
+
+  results.postStructure = postStructure;
+
+  // 显示第一个帖子的完整HTML结构
+  console.log('\n📄 第一个帖子的HTML结构（前500字符）:');
+  console.log(firstPost.outerHTML.substring(0, 500));
+
+  // 检查所有可能的类名
+  console.log('\n🏷️  第一个帖子的所有类名:');
+  const allClasses = Array.from(firstPost.querySelectorAll('*')).map(el => el.className).filter(c => c);
+  const uniqueClasses = [...new Set(allClasses)].slice(0, 20);
+  uniqueClasses.forEach(cls => console.log(`  - ${cls}`));
+
+  console.log('\n' + '='.repeat(60));
+  console.log('✅ 诊断完成');
+  console.log('='.repeat(60));
+  console.log('\n诊断结果:', results);
+  
+  return results;
+})();
+    </pre>
+    <button onclick="copyCode()">复制诊断代码</button>
+  </div>
+
+  <div class="section">
+    <h2>常见问题排查</h2>
+    
+    <h3>1. 找不到 .note-item 元素</h3>
+    <div class="warning">
+      <strong>可能原因：</strong>
+      <ul>
+        <li>小红书更新了DOM结构，类名已改变</li>
+        <li>页面还在加载中，内容未完全显示</li>
+        <li>需要滚动页面才能加载更多内容</li>
+      </ul>
+      <strong>解决方法：</strong>
+      <ul>
+        <li>等待页面完全加载后再运行诊断</li>
+        <li>向下滚动页面，让更多帖子加载出来</li>
+        <li>查看诊断输出的"可能相关的元素"部分</li>
+      </ul>
+    </div>
+
+    <h3>2. 找不到帖子元素（封面图、标题等）</h3>
+    <div class="warning">
+      <strong>可能原因：</strong>
+      <ul>
+        <li>小红书更新了内部DOM结构</li>
+        <li>类名已改变</li>
+      </ul>
+      <strong>解决方法：</strong>
+      <ul>
+        <li>查看诊断输出的"第一个帖子的所有类名"</li>
+        <li>找到新的类名并更新 content.js 中的选择器</li>
+      </ul>
+    </div>
+
+    <h3>3. Content Script 未加载</h3>
+    <div class="error">
+      <strong>检查方法：</strong>
+      <ol>
+        <li>打开 chrome://extensions/</li>
+        <li>找到插件，点击"检查视图"</li>
+        <li>查看是否有错误信息</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>如何更新选择器</h2>
+    <p>如果小红书更新了DOM结构，你需要更新 [content.js](file:///Users/ponponon/Desktop/code/me/xhs_discover/content.js) 中的选择器：</p>
+    <pre>
+// 旧的选择器
+const coverImg = item.querySelector('.cover img');
+
+// 新的选择器（示例）
+const coverImg = item.querySelector('.new-cover-class img');
+    </pre>
+  </div>
+
+  <script>
+    function copyCode() {
+      const code = document.getElementById('diagnosticCode').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('诊断代码已复制到剪贴板！');
+      }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动复制');
+      });
+    }
+  </script>
+</body>
+</html>
