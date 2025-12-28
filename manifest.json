@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "小红书帖子提取器",
+  "version": "1.0.0",
+  "description": "提取小红书探索页面的帖子信息",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.xiaohongshu.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.xiaohongshu.com/explore*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
