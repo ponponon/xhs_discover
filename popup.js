@@ -92,8 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   loadSettings();
-  updateAutoExtractUI();
-  checkAutoExtractStatus();
+  // UI 更新和状态检查现在在 loadSettings 内部异步执行
 
   async function extractPosts() {
     showLoading();
@@ -211,16 +210,40 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     
     contentDiv.innerHTML = gridHtml;
+    
+    // 添加事件监听器，替代内联 onclick
+    const postCards = document.querySelectorAll('.post-card');
+    postCards.forEach(card => {
+      card.addEventListener('click', () => {
+        const postLink = card.getAttribute('data-post-link');
+        window.open(postLink, '_blank');
+      });
+    });
+    
+    // 添加图片错误处理
+    const postCovers = document.querySelectorAll('.post-cover');
+    postCovers.forEach(img => {
+      img.addEventListener('error', () => {
+        img.src = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22240%22 height=%22160%22><rect fill=%22%23f0f0f0%22 width=%22240%22 height=%22160%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22>无封面</text></svg>';
+      });
+    });
+    
+    const authorAvatars = document.querySelectorAll('.author-avatar');
+    authorAvatars.forEach(img => {
+      img.addEventListener('error', () => {
+        img.src = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22><circle fill=%22%23ddd%22 cx=%2212%22 cy=%2212%22 r=%2212%22/></svg>';
+      });
+    });
   }
 
   function createPostCard(post) {
     return `
-      <div class="post-card" onclick="window.open('${escapeHtml(post.postLink)}', '_blank')">
-        <img class="post-cover" src="${escapeHtml(post.coverImage)}" alt="${escapeHtml(post.title)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22240%22 height=%22160%22><rect fill=%22%23f0f0f0%22 width=%22240%22 height=%22160%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22>无封面</text></svg>'">
+      <div class="post-card" data-post-link="${escapeHtml(post.postLink)}">
+        <img class="post-cover" src="${escapeHtml(post.coverImage)}" alt="${escapeHtml(post.title)}">
         <div class="post-info">
           <div class="post-title" title="${escapeHtml(post.title)}">${escapeHtml(post.title)}</div>
           <div class="post-author">
-            <img class="author-avatar" src="${escapeHtml(post.authorAvatar)}" alt="${escapeHtml(post.author)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22><circle fill=%22%23ddd%22 cx=%2212%22 cy=%2212%22 r=%2212%22/></svg>'">
+            <img class="author-avatar" src="${escapeHtml(post.authorAvatar)}" alt="${escapeHtml(post.author)}">
             <span class="author-name" title="${escapeHtml(post.author)}">${escapeHtml(post.author)}</span>
           </div>
           <div class="post-meta">
@@ -464,6 +487,10 @@ document.addEventListener('DOMContentLoaded', () => {
         autoExtractSettings = { ...autoExtractSettings, ...result.autoExtractSettings };
         console.log('[XHS Popup] 合并后的设置:', autoExtractSettings);
       }
+      // 在设置加载完成后更新 UI
+      updateAutoExtractUI();
+      // 然后检查自动提取状态
+      checkAutoExtractStatus();
     });
   }
 

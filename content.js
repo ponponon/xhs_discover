@@ -284,17 +284,49 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-// 立即检查是否需要启动自动提取
-chrome.storage.local.get(['autoExtractSettings'], (result) => {
-  if (result.autoExtractSettings && result.autoExtractSettings.enabled) {
-    scraper.startAutoExtract(result.autoExtractSettings);
+// 重构自动提取启动逻辑
+function initializeAutoExtract() {
+  // 等待DOM完全准备好
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('[XHS AutoExtract] DOM完全加载，开始初始化自动提取');
+      startAutoExtractIfEnabled();
+    });
+  } else {
+    console.log('[XHS AutoExtract] DOM已准备好，开始初始化自动提取');
+    startAutoExtractIfEnabled();
+  }
+}
+
+function startAutoExtractIfEnabled() {
+  chrome.storage.local.get(['autoExtractSettings'], (result) => {
+    const settings = result.autoExtractSettings;
+    console.log('[XHS AutoExtract] 从存储获取自动提取设置:', settings);
+    
+    if (settings && settings.enabled) {
+      console.log('[XHS AutoExtract] 自动提取已启用，开始启动');
+      scraper.startAutoExtract(settings);
+    } else {
+      console.log('[XHS AutoExtract] 自动提取未启用');
+    }
+  });
+}
+
+// 监听存储变化，确保设置更新时立即生效
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes.autoExtractSettings) {
+    const newSettings = changes.autoExtractSettings.newValue;
+    console.log('[XHS AutoExtract] 检测到设置变化:', newSettings);
+    
+    if (newSettings.enabled) {
+      console.log('[XHS AutoExtract] 自动提取已启用，启动服务');
+      scraper.startAutoExtract(newSettings);
+    } else {
+      console.log('[XHS AutoExtract] 自动提取已禁用，停止服务');
+      scraper.stopAutoExtract();
+    }
   }
 });
 
-window.addEventListener('load', () => {
-  chrome.storage.local.get(['autoExtractSettings'], (result) => {
-    if (result.autoExtractSettings && result.autoExtractSettings.enabled) {
-      scraper.startAutoExtract(result.autoExtractSettings);
-    }
-  });
-});
+// 初始化自动提取
+initializeAutoExtract();
