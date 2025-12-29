@@ -1,5 +1,13 @@
 let currentPosts = [];
 let filteredPosts = [];
+let autoExtractSettings = {
+  enabled: false,
+  extractOnLoad: true,
+  detectOnScroll: true,
+  detectInterval: 2,
+  maxPosts: 100,
+  showNotification: true
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   const extractBtn = document.getElementById('extractBtn');
@@ -24,6 +32,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const progressLabel = document.getElementById('progressLabel');
   const progressPercent = document.getElementById('progressPercent');
   const progressBarFill = document.getElementById('progressBarFill');
+  
+  const autoExtractToggle = document.getElementById('autoExtractToggle');
+  const toggleSwitch = document.getElementById('toggleSwitch');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const autoExtractSettingsBtn = document.getElementById('autoExtractSettingsBtn');
+  const settingsModal = document.getElementById('settingsModal');
+  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+  const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+  const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+  const notification = document.getElementById('notification');
+  const notificationText = document.getElementById('notificationText');
 
   extractBtn.addEventListener('click', extractPosts);
   refreshBtn.addEventListener('click', () => {
@@ -41,6 +61,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') applyFilters();
   });
   sortSelect.addEventListener('change', applyFilters);
+
+  autoExtractToggle.addEventListener('click', toggleAutoExtract);
+  autoExtractSettingsBtn.addEventListener('click', openSettings);
+  closeSettingsBtn.addEventListener('click', closeSettings);
+  cancelSettingsBtn.addEventListener('click', closeSettings);
+  saveSettingsBtn.addEventListener('click', saveSettings);
+
+  loadSettings();
+  updateAutoExtractUI();
+  checkAutoExtractStatus();
 
   async function extractPosts() {
     showLoading();
@@ -402,4 +432,157 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
+
+  function loadSettings() {
+    chrome.storage.local.get(['autoExtractSettings'], (result) => {
+      if (result.autoExtractSettings) {
+        autoExtractSettings = { ...autoExtractSettings, ...result.autoExtractSettings };
+      }
+    });
+  }
+
+  function saveSettings() {
+    const extractOnLoad = document.getElementById('extractOnLoad').checked;
+    const detectOnScroll = document.getElementById('detectOnScroll').checked;
+    const detectInterval = parseInt(document.getElementById('detectInterval').value);
+    const maxPosts = parseInt(document.getElementById('maxPosts').value);
+    const showNotification = document.getElementById('showNotification').checked;
+
+    autoExtractSettings = {
+      ...autoExtractSettings,
+      extractOnLoad,
+      detectOnScroll,
+      detectInterval,
+      maxPosts,
+      showNotification
+    };
+
+    chrome.storage.local.set({ autoExtractSettings }, () => {
+      closeSettings();
+      showNotificationMessage('设置已保存', 'success');
+      
+      if (autoExtractSettings.enabled) {
+        updateAutoExtractUI();
+        checkAutoExtractStatus();
+      }
+    });
+  }
+
+  function toggleAutoExtract() {
+    autoExtractSettings.enabled = !autoExtractSettings.enabled;
+    
+    chrome.storage.local.set({ autoExtractSettings }, () => {
+      updateAutoExtractUI();
+      
+      if (autoExtractSettings.enabled) {
+        showNotificationMessage('自动提取已启用', 'success');
+        checkAutoExtractStatus();
+      } else {
+        showNotificationMessage('自动提取已禁用', 'info');
+        disableAutoExtract();
+      }
+    });
+  }
+
+  function updateAutoExtractUI() {
+    if (autoExtractSettings.enabled) {
+      toggleSwitch.classList.add('active');
+      statusDot.classList.add('active');
+      statusText.textContent = '运行中';
+    } else {
+      toggleSwitch.classList.remove('active');
+      statusDot.classList.remove('active');
+      statusText.textContent = '未启用';
+    }
+  }
+
+  async function checkAutoExtractStatus() {
+    if (!autoExtractSettings.enabled) {
+      return;
+    }
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (!tab.url.includes('xiaohongshu.com/explore')) {
+        statusDot.classList.remove('active');
+        statusDot.classList.add('paused');
+        statusText.textContent = '等待页面';
+        return;
+      }
+
+      statusDot.classList.add('active');
+      statusDot.classList.remove('paused');
+      statusText.textContent = '运行中';
+
+      const response = await chrome.tabs.sendMessage(tab.id, { 
+        action: 'GET_AUTO_EXTRACT_STATUS' 
+      });
+
+      if (response && response.isRunning) {
+        if (response.newPostsCount > 0) {
+          showNotificationMessage(`已提取 ${response.newPostsCount} 个新帖子`, 'success');
+          await extractPosts();
+        }
+      } else {
+        await chrome.tabs.sendMessage(tab.id, { 
+          action: 'START_AUTO_EXTRACT',
+          settings: autoExtractSettings
+        });
+      }
+    } catch (error) {
+      console.error('[XHS Popup] 检查自动提取状态时出错:', error);
+    }
+  }
+
+  async function disableAutoExtract() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (tab.url.includes('xiaohongshu.com/explore')) {
+        await chrome.tabs.sendMessage(tab.id, { 
+          action: 'STOP_AUTO_EXTRACT' 
+        });
+      }
+    } catch (error) {
+      console.error('[XHS Popup] 禁用自动提取时出错:', error);
+    }
+  }
+
+  function openSettings() {
+    document.getElementById('extractOnLoad').checked = autoExtractSettings.extractOnLoad;
+    document.getElementById('detectOnScroll').checked = autoExtractSettings.detectOnScroll;
+    document.getElementById('detectInterval').value = autoExtractSettings.detectInterval;
+    document.getElementById('maxPosts').value = autoExtractSettings.maxPosts;
+    document.getElementById('showNotification').checked = autoExtractSettings.showNotification;
+    
+    settingsModal.classList.add('show');
+  }
+
+  function closeSettings() {
+    settingsModal.classList.remove('show');
+  }
+
+  function showNotificationMessage(message, type = 'info') {
+    if (!autoExtractSettings.showNotification) {
+      return;
+    }
+
+    notificationText.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.classList.add('show');
+
+    setTimeout(() => {
+      notification.classList.remove('show');
+    }, 3000);
+  }
+
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === 'AUTO_EXTRACT_NEW_POSTS') {
+      if (autoExtractSettings.enabled) {
+        showNotificationMessage(`已提取 ${request.count} 个新帖子`, 'success');
+        extractPosts();
+      }
+    }
+  });
 });

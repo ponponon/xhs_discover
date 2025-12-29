@@ -1,6 +1,7 @@
 class XiaohongshuScraper {
   constructor() {
     this.posts = [];
+    this.autoExtractManager = null;
   }
 
   extractPosts() {
@@ -81,37 +82,192 @@ class XiaohongshuScraper {
     return '未知';
   }
 
-  listenForNewPosts() {
-    const observer = new MutationObserver((mutations) => {
+  startAutoExtract(settings) {
+    if (this.autoExtractManager) {
+      this.autoExtractManager.stop();
+    }
+
+    this.autoExtractManager = new AutoExtractManager(settings, this);
+    this.autoExtractManager.start();
+  }
+
+  stopAutoExtract() {
+    if (this.autoExtractManager) {
+      this.autoExtractManager.stop();
+      this.autoExtractManager = null;
+    }
+  }
+
+  getAutoExtractStatus() {
+    if (!this.autoExtractManager) {
+      return { isRunning: false, newPostsCount: 0 };
+    }
+
+    return {
+      isRunning: this.autoExtractManager.isRunning,
+      newPostsCount: this.autoExtractManager.newPostsCount
+    };
+  }
+}
+
+class AutoExtractManager {
+  constructor(settings, scraper) {
+    this.settings = settings;
+    this.scraper = scraper;
+    this.isRunning = false;
+    this.observer = null;
+    this.timer = null;
+    this.lastPostCount = 0;
+    this.newPostsCount = 0;
+    this.scrollHandler = null;
+    this.throttleTimer = null;
+  }
+
+  start() {
+    if (this.isRunning) {
+      return;
+    }
+
+    this.isRunning = true;
+    this.lastPostCount = document.querySelectorAll('.note-item').length;
+    this.newPostsCount = 0;
+
+    if (this.settings.extractOnLoad) {
+      this.extractAndNotify();
+    }
+
+    if (this.settings.detectOnScroll) {
+      this.setupScrollListener();
+    }
+
+    this.setupDOMObserver();
+    this.setupPeriodicCheck();
+
+    console.log('[XHS AutoExtract] 自动提取已启动');
+  }
+
+  stop() {
+    if (!this.isRunning) {
+      return;
+    }
+
+    this.isRunning = false;
+
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
+    }
+
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+
+    if (this.scrollHandler) {
+      window.removeEventListener('scroll', this.scrollHandler);
+      this.scrollHandler = null;
+    }
+
+    if (this.throttleTimer) {
+      clearTimeout(this.throttleTimer);
+      this.throttleTimer = null;
+    }
+
+    console.log('[XHS AutoExtract] 自动提取已停止');
+  }
+
+  setupScrollListener() {
+    this.scrollHandler = () => {
+      if (this.throttleTimer) {
+        return;
+      }
+
+      this.throttleTimer = setTimeout(() => {
+        this.checkForNewPosts();
+        this.throttleTimer = null;
+      }, 500);
+    };
+
+    window.addEventListener('scroll', this.scrollHandler, { passive: true });
+  }
+
+  setupDOMObserver() {
+    const feedsContainer = document.querySelector('.feeds-page') || document.body;
+    
+    this.observer = new MutationObserver((mutations) => {
+      if (!this.isRunning) {
+        return;
+      }
+
       let hasNewPosts = false;
       mutations.forEach((mutation) => {
         if (mutation.addedNodes.length > 0) {
           mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === 1 && node.classList?.contains('note-item')) {
-              hasNewPosts = true;
+            if (node.nodeType === 1) {
+              if (node.classList?.contains('note-item')) {
+                hasNewPosts = true;
+              } else if (node.querySelector?.('.note-item')) {
+                hasNewPosts = true;
+              }
             }
           });
         }
       });
 
       if (hasNewPosts) {
-        this.posts = this.extractPosts();
-        chrome.runtime.sendMessage({
-          type: 'POSTS_UPDATED',
-          posts: this.posts
-        });
+        this.checkForNewPosts();
       }
     });
 
-    const feedsContainer = document.getElementById('exploreFeeds');
-    if (feedsContainer) {
-      observer.observe(feedsContainer, {
-        childList: true,
-        subtree: true
-      });
+    this.observer.observe(feedsContainer, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  setupPeriodicCheck() {
+    const interval = this.settings.detectInterval * 1000;
+    this.timer = setInterval(() => {
+      this.checkForNewPosts();
+    }, interval);
+  }
+
+  checkForNewPosts() {
+    if (!this.isRunning) {
+      return;
     }
 
-    return observer;
+    const currentPostCount = document.querySelectorAll('.note-item').length;
+    
+    if (currentPostCount > this.lastPostCount) {
+      const newCount = currentPostCount - this.lastPostCount;
+      this.newPostsCount += newCount;
+      this.lastPostCount = currentPostCount;
+
+      console.log(`[XHS AutoExtract] 检测到 ${newCount} 个新帖子`);
+
+      if (this.settings.maxPosts > 0 && currentPostCount >= this.settings.maxPosts) {
+        console.log(`[XHS AutoExtract] 已达到最大提取数量 ${this.settings.maxPosts}`);
+        this.stop();
+        chrome.runtime.sendMessage({
+          type: 'AUTO_EXTRACT_NEW_POSTS',
+          count: this.newPostsCount
+        });
+      } else {
+        this.extractAndNotify();
+      }
+    }
+  }
+
+  extractAndNotify() {
+    const posts = this.scraper.extractPosts();
+    
+    if (this.newPostsCount > 0) {
+      chrome.runtime.sendMessage({
+        type: 'AUTO_EXTRACT_NEW_POSTS',
+        count: this.newPostsCount
+      });
+    }
   }
 }
 
@@ -121,9 +277,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'EXTRACT_POSTS') {
     const posts = scraper.extractPosts();
     sendResponse({ success: true, posts: posts });
+  } else if (request.action === 'START_AUTO_EXTRACT') {
+    scraper.startAutoExtract(request.settings);
+    sendResponse({ success: true });
+  } else if (request.action === 'STOP_AUTO_EXTRACT') {
+    scraper.stopAutoExtract();
+    sendResponse({ success: true });
+  } else if (request.action === 'GET_AUTO_EXTRACT_STATUS') {
+    const status = scraper.getAutoExtractStatus();
+    sendResponse(status);
   }
+  return true;
 });
 
 window.addEventListener('load', () => {
-  scraper.listenForNewPosts();
+  chrome.storage.local.get(['autoExtractSettings'], (result) => {
+    if (result.autoExtractSettings && result.autoExtractSettings.enabled) {
+      scraper.startAutoExtract(result.autoExtractSettings);
+    }
+  });
 });
