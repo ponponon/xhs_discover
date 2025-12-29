@@ -238,17 +238,14 @@ class AutoExtractManager {
       this.newPostsCount += newCount;
       this.lastPostCount = currentPostCount;
 
-      console.log(`[XHS AutoExtract] 检测到 ${newCount} 个新帖子`);
+      console.log(`[XHS AutoExtract] 检测到 ${newCount} 个新帖子，总新帖子数: ${this.newPostsCount}`);
+
+      // 立即提取新帖子
+      this.extractAndNotify();
 
       if (this.settings.maxPosts > 0 && currentPostCount >= this.settings.maxPosts) {
         console.log(`[XHS AutoExtract] 已达到最大提取数量 ${this.settings.maxPosts}`);
         this.stop();
-        chrome.runtime.sendMessage({
-          type: 'AUTO_EXTRACT_NEW_POSTS',
-          count: this.newPostsCount
-        });
-      } else {
-        this.extractAndNotify();
       }
     }
   }
