@@ -2,8 +2,6 @@ let currentPosts = [];
 let filteredPosts = [];
 let autoExtractSettings = {
   enabled: false,
-  extractOnLoad: true,
-  detectOnScroll: true,
   detectInterval: 2,
   maxPosts: 100,
   showNotification: true
@@ -471,18 +469,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function saveSettings() {
     console.log('[XHS Popup] 保存设置...');
-    const extractOnLoad = document.getElementById('extractOnLoad').checked;
-    const detectOnScroll = document.getElementById('detectOnScroll').checked;
     const detectInterval = parseInt(document.getElementById('detectInterval').value);
     const maxPosts = parseInt(document.getElementById('maxPosts').value);
     const showNotification = document.getElementById('showNotification').checked;
 
-    console.log('[XHS Popup] 新设置值:', { extractOnLoad, detectOnScroll, detectInterval, maxPosts, showNotification });
+    console.log('[XHS Popup] 新设置值:', { detectInterval, maxPosts, showNotification });
 
     autoExtractSettings = {
       ...autoExtractSettings,
-      extractOnLoad,
-      detectOnScroll,
       detectInterval,
       maxPosts,
       showNotification
@@ -586,8 +580,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openSettings() {
-    document.getElementById('extractOnLoad').checked = autoExtractSettings.extractOnLoad;
-    document.getElementById('detectOnScroll').checked = autoExtractSettings.detectOnScroll;
     document.getElementById('detectInterval').value = autoExtractSettings.detectInterval;
     document.getElementById('maxPosts').value = autoExtractSettings.maxPosts;
     document.getElementById('showNotification').checked = autoExtractSettings.showNotification;

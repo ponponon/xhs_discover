@@ -132,14 +132,8 @@ class AutoExtractManager {
     this.lastPostCount = document.querySelectorAll('.note-item').length;
     this.newPostsCount = 0;
 
-    if (this.settings.extractOnLoad) {
-      this.extractAndNotify();
-    }
-
-    if (this.settings.detectOnScroll) {
-      this.setupScrollListener();
-    }
-
+    this.extractAndNotify();
+    this.setupScrollListener();
     this.setupDOMObserver();
     this.setupPeriodicCheck();
 
@@ -262,10 +256,10 @@ class AutoExtractManager {
   extractAndNotify() {
     const posts = this.scraper.extractPosts();
     
-    if (this.newPostsCount > 0) {
+    if (posts.length > 0) {
       chrome.runtime.sendMessage({
         type: 'AUTO_EXTRACT_NEW_POSTS',
-        count: this.newPostsCount
+        count: posts.length
       });
     }
   }
@@ -288,6 +282,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse(status);
   }
   return true;
+});
+
+// 立即检查是否需要启动自动提取
+chrome.storage.local.get(['autoExtractSettings'], (result) => {
+  if (result.autoExtractSettings && result.autoExtractSettings.enabled) {
+    scraper.startAutoExtract(result.autoExtractSettings);
+  }
 });
 
 window.addEventListener('load', () => {
