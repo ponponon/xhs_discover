@@ -62,11 +62,36 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   sortSelect.addEventListener('change', applyFilters);
 
-  autoExtractToggle.addEventListener('click', toggleAutoExtract);
-  autoExtractSettingsBtn.addEventListener('click', openSettings);
-  closeSettingsBtn.addEventListener('click', closeSettings);
-  cancelSettingsBtn.addEventListener('click', closeSettings);
-  saveSettingsBtn.addEventListener('click', saveSettings);
+  autoExtractToggle.addEventListener('click', (e) => {
+    console.log('[XHS Popup] 自动提取开关被点击');
+    e.preventDefault();
+    e.stopPropagation();
+    toggleAutoExtract();
+  });
+  autoExtractSettingsBtn.addEventListener('click', (e) => {
+    console.log('[XHS Popup] 设置按钮被点击');
+    e.preventDefault();
+    e.stopPropagation();
+    openSettings();
+  });
+  closeSettingsBtn.addEventListener('click', (e) => {
+    console.log('[XHS Popup] 关闭设置按钮被点击');
+    e.preventDefault();
+    e.stopPropagation();
+    closeSettings();
+  });
+  cancelSettingsBtn.addEventListener('click', (e) => {
+    console.log('[XHS Popup] 取消设置按钮被点击');
+    e.preventDefault();
+    e.stopPropagation();
+    closeSettings();
+  });
+  saveSettingsBtn.addEventListener('click', (e) => {
+    console.log('[XHS Popup] 保存设置按钮被点击');
+    e.preventDefault();
+    e.stopPropagation();
+    saveSettings();
+  });
 
   loadSettings();
   updateAutoExtractUI();
@@ -434,19 +459,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function loadSettings() {
+    console.log('[XHS Popup] 加载设置...');
     chrome.storage.local.get(['autoExtractSettings'], (result) => {
+      console.log('[XHS Popup] 从存储加载的设置:', result);
       if (result.autoExtractSettings) {
         autoExtractSettings = { ...autoExtractSettings, ...result.autoExtractSettings };
+        console.log('[XHS Popup] 合并后的设置:', autoExtractSettings);
       }
     });
   }
 
   function saveSettings() {
+    console.log('[XHS Popup] 保存设置...');
     const extractOnLoad = document.getElementById('extractOnLoad').checked;
     const detectOnScroll = document.getElementById('detectOnScroll').checked;
     const detectInterval = parseInt(document.getElementById('detectInterval').value);
     const maxPosts = parseInt(document.getElementById('maxPosts').value);
     const showNotification = document.getElementById('showNotification').checked;
+
+    console.log('[XHS Popup] 新设置值:', { extractOnLoad, detectOnScroll, detectInterval, maxPosts, showNotification });
 
     autoExtractSettings = {
       ...autoExtractSettings,
@@ -457,7 +488,9 @@ document.addEventListener('DOMContentLoaded', () => {
       showNotification
     };
 
+    console.log('[XHS Popup] 保存到存储:', autoExtractSettings);
     chrome.storage.local.set({ autoExtractSettings }, () => {
+      console.log('[XHS Popup] 设置已保存到存储');
       closeSettings();
       showNotificationMessage('设置已保存', 'success');
       
@@ -469,9 +502,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function toggleAutoExtract() {
+    console.log('[XHS Popup] 切换自动提取状态，当前状态:', autoExtractSettings.enabled);
     autoExtractSettings.enabled = !autoExtractSettings.enabled;
+    console.log('[XHS Popup] 新状态:', autoExtractSettings.enabled);
     
     chrome.storage.local.set({ autoExtractSettings }, () => {
+      console.log('[XHS Popup] 状态已保存到存储');
       updateAutoExtractUI();
       
       if (autoExtractSettings.enabled) {
