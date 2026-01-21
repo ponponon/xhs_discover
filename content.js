@@ -30,15 +30,23 @@ class XiaohongshuScraper {
 
     let authorAvatar = '';
     
-    const authorAvatarElement = item.querySelector('.author-wrapper .author .author-avatar img');
-    if (authorAvatarElement) {
-      authorAvatar = authorAvatarElement.src;
+    // 直接查找带有author-avatar类的img标签（小红书当前结构）
+    const authorAvatarImg = item.querySelector('.author-wrapper .author img.author-avatar');
+    if (authorAvatarImg) {
+      authorAvatar = authorAvatarImg.src;
     } else {
-      const authorAvatarDiv = item.querySelector('.author-wrapper .author .author-avatar');
-      if (authorAvatarDiv) {
-        const bgImage = window.getComputedStyle(authorAvatarDiv).backgroundImage;
-        if (bgImage && bgImage !== 'none') {
-          authorAvatar = bgImage.replace(/url\(['"]?([^'"]+)['"]?\)/, '$1');
+      // 兼容旧结构：查找author-avatar容器内的img
+      const nestedAvatarImg = item.querySelector('.author-wrapper .author .author-avatar img');
+      if (nestedAvatarImg) {
+        authorAvatar = nestedAvatarImg.src;
+      } else {
+        // 兼容无img标签的情况，从背景图获取
+        const authorAvatarDiv = item.querySelector('.author-wrapper .author .author-avatar');
+        if (authorAvatarDiv) {
+          const bgImage = window.getComputedStyle(authorAvatarDiv).backgroundImage;
+          if (bgImage && bgImage !== 'none') {
+            authorAvatar = bgImage.replace(/url\(['"]?([^'"]+)['"]?\)/, '$1');
+          }
         }
       }
     }
