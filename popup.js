@@ -314,9 +314,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const headers = ['序号', '帖子ID', '标题', '发布者', '发布者头像', '点赞数', '发布时间', '封面图', '帖子链接'];
     const csvRows = [headers.join(',')];
 
-    filteredPosts.forEach(post => {
+    filteredPosts.forEach((post, index) => {
       const row = [
-        post.index,
+        index + 1, // 使用数组索引作为序号，确保连续正确
         post.postId,
         `"${(post.title || '').replace(/"/g, '""')}"`,
         `"${(post.author || '').replace(/"/g, '""')}"`,
@@ -346,8 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const headers = ['序号', '帖子ID', '标题', '发布者', '发布者头像', '点赞数', '发布时间', '封面图', '帖子链接'];
-    const rows = filteredPosts.map(post => [
-      post.index,
+    const rows = filteredPosts.map((post, index) => [
+      index + 1, // 使用数组索引作为序号，确保连续正确
       post.postId,
       post.title || '',
       post.author || '',

@@ -10,8 +10,12 @@ class XiaohongshuScraper {
     noteItems.forEach((item, index) => {
       try {
         const post = this.extractPostData(item, index);
-        if (post) {
-          this.posts.push(post);
+        if (post && post.postId) {
+          // 检查帖子是否已存在，通过postId去重
+          const isDuplicate = this.posts.some(existingPost => existingPost.postId === post.postId);
+          if (!isDuplicate) {
+            this.posts.push(post);
+          }
         }
       } catch (error) {
         console.error(`[XHS Scraper] 提取帖子 ${index} 时出错:`, error);
